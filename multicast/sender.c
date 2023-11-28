@@ -1,60 +1,35 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <string.h>
-struct in_addr localInterface;
-struct sockaddr_in groupSock;
-int sd;
-int datalen;
-char databuf[1024];
-int main (int argc, char *argv[])
-{
- /*
- * Create a datagram socket on which to send.
- */
- sd = socket(AF_INET, SOCK_DGRAM, 0);
- if (sd < 0) {
- perror("opening datagram socket");
- exit(1);
- }
- bzero(&groupSock,sizeof(groupSock));
- groupSock.sin_family = AF_INET;
- groupSock.sin_addr.s_addr = inet_addr("225.1.1.1");
- groupSock.sin_port = htons(5005);
- /*
- * Disable loopback so you do not receive your own datagrams.
- */
- {
- char loopch=0;
- if (setsockopt(sd, IPPROTO_IP, IP_MULTICAST_LOOP, (char *)&loopch, sizeof(loopch)) < 0) {
- perror("setting IP_MULTICAST_LOOP:");
- close(sd);
- exit(1);
- }
- }
- /*
- * Set local interface for outbound multicast datagrams.
- * The IP address specified must be associated with a local,
- * multicast-capable interface.
- */
- localInterface.s_addr = inet_addr("127.0.0.1");
- if (setsockopt(sd, IPPROTO_IP, IP_MULTICAST_IF, (char *)&localInterface, sizeof(localInterface)) < 0) {
- perror("setting local interface");
- exit(1);
- }
- /*
- * Send a message to the multicast group specified by the
- * groupSock sockaddr structure.
- */
- datalen = 10;
- if (sendto(sd, databuf, datalen, 0,
- (struct sockaddr*)&groupSock,
- sizeof(groupSock)) < 0)
- {
- perror("sending datagram message");
- }
+#include<stdio.h>
+#include<sys/socket.h>
+#include<netinet/in.h>
+#include<arpa/inet.h>
+#include<string.h>
+#include<unistd.h>
+#include<stdbool.h>
+
+int main(){
+
+    int sockfd;
+    struct sockaddr_in multicastaddr;
+    char buffer[100];
+
+    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+
+    bzero(&multicastaddr, sizeof(multicastaddr));
+    multicastaddr.sin_family = AF_INET;
+    multicastaddr.sin_port = htons(6000);
+    multicastaddr.sin_addr.s_addr = inet_addr("225.1.1.1");
+
+    int opt = 1;
+    setsockopt(sockfd, IPPROTO_IP,IP_MULTICAST_LOOP, &opt, sizeof(opt));
+
+    struct in_addr interface_addr;
+    interface_addr.s_addr = inet_addr("10.0.2.15");
+    setsockopt(sockfd, IPPROTO_IP, IP_MULTICAST_IF, &interface_addr, sizeof(interface_addr));
+
+    socklen_t len = sizeof(multicastaddr);
+
+    while(true){
+        fgets(buffer, sizeof(buffer), stdin);
+        sendto(sockfd, buffer, sizeof(buffer), 0, (struct sockaddr*)&multicastaddr, len);
+    }
 }
