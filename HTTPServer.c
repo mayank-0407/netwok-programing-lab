@@ -12,7 +12,7 @@ int main(){
 
     addr.sin_famil=AF_INET;
     addr.sin_addr.s_addr=htonl(INADDR_ANY);
-    addr.sin_port=htons(8080);
+    addr.sin_port=htons(8000);
 
     bind(listen_fd,(struct sockaddr *)&addr,sizeof(addr));
     listen(listen_fd,10);
